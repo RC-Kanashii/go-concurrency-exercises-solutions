@@ -13,10 +13,30 @@
 
 package main
 
+import (
+	"os"
+	"os/signal"
+	"syscall"
+)
+
 func main() {
 	// Create a process
 	proc := MockProcess{}
 
+	sigCh := make(chan os.Signal)        // 传递信号的通道
+	shutdownCh := make(chan bool)        // 传递结束程序信息的通道
+	signal.Notify(sigCh, syscall.SIGINT) // 监听SIGINT信号
+
 	// Run the process (blocking)
-	proc.Run()
+	go proc.Run()
+
+	go func() {
+		<-sigCh
+		go proc.Stop()
+		signal.Reset()
+		<-sigCh
+		shutdownCh <- true
+	}()
+
+	<-shutdownCh
 }
