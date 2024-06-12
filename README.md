@@ -1,6 +1,8 @@
 # 说明
 
-这是我个人的针对[go-concurrency-exercises](https://github.com/loong/go-concurrency-exercises)的解法，可能不够优雅，不够高效。欢迎大佬提出issue，共同讨论。
+这是我个人的针对[go-concurrency-exercises](https://github.com/loong/go-concurrency-exercises)的解法，可能不够优雅和高效。欢迎大佬提出issue，共同讨论。
+
+我的解法参考了[DavidWittman](https://github.com/DavidWittman/go-concurrency-exercises/tree/solutions)和[laurynasusas](https://github.com/laurynasusas/go-concurrency-exercises/tree/master)的解法。
 
 # Go Concurrency Exercises [![Build Status](https://travis-ci.org/loong/go-concurrency-exercises.svg?branch=main)](https://travis-ci.org/loong/go-concurrency-exercises) [![Go Report Card](https://goreportcard.com/badge/github.com/loong/go-concurrency-exercises)](https://goreportcard.com/report/github.com/loong/go-concurrency-exercises)
 Exercises for Golang's concurrency patterns.
