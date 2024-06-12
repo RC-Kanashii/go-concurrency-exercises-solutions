@@ -19,18 +19,23 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"sync"
+	"time"
 )
 
 // SessionManager keeps track of all sessions from creation, updating
 // to destroying.
 type SessionManager struct {
 	sessions map[string]Session
+	mu       sync.RWMutex // 读写锁
 }
 
 // Session stores the session's data
 type Session struct {
-	Data map[string]interface{}
+	Data        map[string]interface{}
+	UpdatedTime time.Time // 更新时间
 }
 
 // NewSessionManager creates a new sessionManager
@@ -38,6 +43,8 @@ func NewSessionManager() *SessionManager {
 	m := &SessionManager{
 		sessions: make(map[string]Session),
 	}
+
+	go MonitorSessions(m)
 
 	return m
 }
@@ -49,8 +56,11 @@ func (m *SessionManager) CreateSession() (string, error) {
 		return "", err
 	}
 
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.sessions[sessionID] = Session{
-		Data: make(map[string]interface{}),
+		Data:        make(map[string]interface{}),
+		UpdatedTime: time.Now(),
 	}
 
 	return sessionID, nil
@@ -63,6 +73,8 @@ var ErrSessionNotFound = errors.New("SessionID does not exists")
 // GetSessionData returns data related to session if sessionID is
 // found, errors otherwise
 func (m *SessionManager) GetSessionData(sessionID string) (map[string]interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	session, ok := m.sessions[sessionID]
 	if !ok {
 		return nil, ErrSessionNotFound
@@ -72,6 +84,8 @@ func (m *SessionManager) GetSessionData(sessionID string) (map[string]interface{
 
 // UpdateSessionData overwrites the old session data with the new one
 func (m *SessionManager) UpdateSessionData(sessionID string, data map[string]interface{}) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	_, ok := m.sessions[sessionID]
 	if !ok {
 		return ErrSessionNotFound
@@ -79,10 +93,29 @@ func (m *SessionManager) UpdateSessionData(sessionID string, data map[string]int
 
 	// Hint: you should renew expiry of the session here
 	m.sessions[sessionID] = Session{
-		Data: data,
+		Data:        data,
+		UpdatedTime: time.Now(),
 	}
 
 	return nil
+}
+
+// MonitorSessions 监控线程
+func MonitorSessions(m *SessionManager) {
+	tick := time.Tick(100 * time.Millisecond)
+	for {
+		// 每0.1秒检测一次
+		<-tick
+		m.mu.Lock()
+		for id, s := range m.sessions {
+			d := time.Since(s.UpdatedTime)
+			if d > 5*time.Second {
+				fmt.Printf("Session %v runs for %v\n", id, d)
+				delete(m.sessions, id)
+			}
+		}
+		m.mu.Unlock()
+	}
 }
 
 func main() {
@@ -113,4 +146,6 @@ func main() {
 	}
 
 	log.Println("Get session data:", updatedData)
+
+	time.Sleep(10 * time.Second)
 }
